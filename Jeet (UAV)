@@ -1,1 +1,232 @@
+import java.text.DecimalFormat;
+import java.util.Scanner;
+import java.util.TreeMap;
+import java.util.Map;
+
+public class Drone {
+    // create object globally
+    static DecimalFormat decimalFormat = new DecimalFormat("#.##");
+    static TreeMap<String,Double> finalTrust = new TreeMap<>();
+    static TreeMap<String,Double> recomendationList = new TreeMap<>();
+    static TreeMap<String,Double> discardList = new TreeMap<>();
+    // Calculate Direct trust of a node
+
+    public static double[] calDirectTrust(double recog_Matrix[][]) {
+        double nodeWeight[] = new double[recog_Matrix.length];
+        double directTrust[] = new double[recog_Matrix.length];
+        // now start calculating
+        for(int i=0; i<recog_Matrix.length; i++) {
+            double totWeight =0;
+            for(int j=0; j<recog_Matrix[0].length; j++) {
+                if(i==0) {
+                    totWeight += 0.25 * (recog_Matrix[i][j]);
+                    nodeWeight[i] = totWeight;
+                }
+                if(i==1) {
+                    totWeight += 0.25 * (recog_Matrix[i][j]);
+                    nodeWeight[i] = totWeight;
+                }
+                if(i==2) {
+                    totWeight += 0.25 * (recog_Matrix[i][j]);
+                    nodeWeight[i] = totWeight;
+                }
+                if(i==3) {
+                    totWeight += 0.25 * (recog_Matrix[i][j]);
+                    nodeWeight[i] = totWeight;
+                }
+                if(i==4) {
+                    totWeight += 0.25 * (recog_Matrix[i][j]);
+                    nodeWeight[i] = totWeight;
+                }
+                if(i==5) {
+                    totWeight += 0.25 * (recog_Matrix[i][j]);
+                    nodeWeight[i] = totWeight;
+                }
+            }
+        }
+        // calculate direct trust
+        for(int i=0; i<recog_Matrix.length; i++) {
+            if(nodeWeight[i] <= 0.29) {
+                double trust = 0.5 * (Math.pow(0.5, nodeWeight[i]));
+                directTrust[i] = Double.parseDouble(decimalFormat.format(trust));
+            }else if(nodeWeight[i] >= 0.3 && nodeWeight[i] <= 0.69) {
+                double trust = 0.5 * (Math.pow(1.5, nodeWeight[i]));
+                directTrust[i] = Double.parseDouble(decimalFormat.format(trust));
+            }else {
+                double trust = 0.5 * (Math.pow(2, nodeWeight[i]));
+                directTrust[i] = Double.parseDouble(decimalFormat.format(trust));
+            }
+        }
+        return directTrust;
+    }
+    // Calculate Indirect Trust of a node
+
+    public static double[] calIndirectTrust(double directTrust[]) {
+        double indirectTrust[] = new double[directTrust.length];
+        for(int i=0; i<directTrust.length; i++) {
+            double indTrust=0;
+            double sum = 0;
+            for(int j=0; j< directTrust.length; j++) {
+                if(i != j) {
+                    sum += directTrust[j];
+                }
+            }
+            indTrust = sum/6;
+            indirectTrust[i] = Double.parseDouble(decimalFormat.format(indTrust));
+        }
+        return indirectTrust;
+    }
+    // Calculate Final Trust of a node
+
+    public static TreeMap<String,Double> calFinal_Trust(double recog_Matrix[][]) {
+        // call calDirectTrust() method
+        double directTrust[] = calDirectTrust(recog_Matrix);
+        // call calIndirectTrust() method
+        double indirectTrust[] = calIndirectTrust(directTrust);
+
+        // now calculate the final trust using direct and indirect trust
+
+        for(int i=0; i<directTrust.length; i++) {
+            double finTrust=0;
+            for(int j=0; j<1; j++) {
+                if(directTrust[i] >= 0.4 && directTrust[i] < 0.5) {
+                    finTrust = (0.4 * directTrust[i]) + (0.6 * indirectTrust[i]);
+                }else if(directTrust[i] >= 0.5 && directTrust[i] < 0.6) {
+                    finTrust = (0.5 * directTrust[i]) + (0.5 * indirectTrust[i]);
+                }else if(directTrust[i] >= 0.6 && directTrust[i] < 0.7) {
+                    finTrust = (0.6 * directTrust[i]) + (0.4 * indirectTrust[i]);
+                }else if(directTrust[i] >= 0.7 && directTrust[i] < 0.8) {
+                    finTrust = (0.7 * directTrust[i]) + (0.3 * indirectTrust[i]);
+                }else if(directTrust[i] >= 0.8) {
+                    finTrust = directTrust[i];
+                }else {
+                    finTrust = 0;
+                }
+                finalTrust.put("Node"+(i+1), Double.parseDouble(decimalFormat.format(finTrust)));
+            }
+        }
+        return finalTrust;
+    }
+    // calculate recognition matrix 
+
+    public static double[][] calRecog_Matrix(double nodeValue[][]) {
+        double recog_Matrix[][] = new double[nodeValue.length][nodeValue[0].length];
+        // first standardize the matrix
+        for(int i=0; i<nodeValue.length; i++) {
+            for(int j=0; j<nodeValue[0].length; j++) {
+                // for signal strength
+                if(j==0) {
+                    double ss = nodeValue[i][j] / 3.42;
+                    nodeValue[i][j] =Double.parseDouble(decimalFormat.format(ss));
+                }
+                // for packet delivery ratio and node energy
+                if(j==1 || j==2) {
+                    double pkd_or_ne = nodeValue[i][j] / 100;
+                    nodeValue[i][j] =Double.parseDouble(decimalFormat.format(pkd_or_ne));
+                }
+                // for transmission delay
+                if(j==3) {
+                    double td = (2.45 - nodeValue[i][j]) / 1.84;
+                    nodeValue[i][j] =Double.parseDouble(decimalFormat.format(td));
+                }
+            }
+        }
+        // now convert recognition matrix
+
+        for(int i=0; i<nodeValue.length; i++) {
+            for(int j=0; j<nodeValue[0].length; j++) {
+                // for signal strength
+                if(j==0) {
+                    double max_num = nodeValue[i][j];
+                    double min_num = nodeValue[i][j];
+                    for(int n=0; n<nodeValue.length; n++) {
+                        if(nodeValue[n][j] > max_num) {
+                            max_num = nodeValue[n][j];
+                        }
+                    }
+                    for(int n=0; n<nodeValue.length; n++) {
+                        if(nodeValue[n][j] < min_num) {
+                            min_num = nodeValue[n][j];
+                        }
+                    }
+                    double a = (nodeValue[i][j] - min_num) / (max_num - min_num);
+                    recog_Matrix[i][j] = Double.parseDouble(decimalFormat.format(a));
+                }
+                // for packet delivery ratio
+                if(j==1) {
+                    double max_num = nodeValue[i][j];
+                    double min_num = nodeValue[i][j];
+                    for(int n=0; n<nodeValue.length; n++) {
+                        if(nodeValue[n][j] > max_num) {
+                            max_num = nodeValue[n][j];
+                        }
+                    }
+                    for(int n=0; n<nodeValue.length; n++) {
+                        if(nodeValue[n][j] < min_num) {
+                            min_num = nodeValue[n][j];
+                        }
+                    }
+                    double b = (nodeValue[i][j] - min_num) / (max_num - min_num);
+                    recog_Matrix[i][j] = Double.parseDouble(decimalFormat.format(b));
+                }
+                // for node energy
+                if(j==2) {
+                    double max_num = nodeValue[i][j];
+                    double min_num = nodeValue[i][j];
+                    for(int n=0; n<nodeValue.length; n++) {
+                        if(nodeValue[n][j] > max_num) {
+                            max_num = nodeValue[n][j];
+                        }
+                    }
+                    for(int n=0; n<nodeValue.length; n++) {
+                        if(nodeValue[n][j] < min_num) {
+                            min_num = nodeValue[n][j];
+                        }
+                    }
+                    double c  = (nodeValue[i][j] - min_num) / (max_num - min_num);
+                    recog_Matrix[i][j] = Double.parseDouble(decimalFormat.format(c));
+                }
+                // for transmission delay
+                if(j==3) {
+                    double max_num = nodeValue[i][j];
+                    double min_num = nodeValue[i][j];
+                    for(int n=0; n<nodeValue.length; n++) {
+                        if(nodeValue[n][j] > max_num) {
+                            max_num = nodeValue[n][j];
+                        }
+                    }
+                    for(int n=0; n<nodeValue.length; n++) {
+                        if(nodeValue[n][j] < min_num) {
+                            min_num = nodeValue[n][j];
+                        }
+                    }
+                    double d = (nodeValue[i][j] - min_num) / (max_num - min_num);
+                    recog_Matrix[i][j] = Double.parseDouble(decimalFormat.format(d));
+                }
+            }
+        }
+        return recog_Matrix;
+    }
+    public static void main(String[] args) {
+        // taking nodes parameter from the user
+
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Enter number of nodes : ");
+        int n = sc.nextInt();
+        final double nodeValue[][] = new double[n][4];
+        for(int i=0; i<n; i++) {
+            System.out.println("Enter value for Node"+(i+1));
+            System.out.println("SS  PDR  NE  TD");
+            for(int j=0; j<4; j++) {
+                nodeValue[i][j] = sc.nextDouble();
+            }
+        }
+        // call calRecog_Matrix() method
+        double recog_Matrix[][] = calRecog_Matrix(nodeValue); // return recognition matrix
+        // Cal calFinal_Trust() method
+        TreeMap<String,Double> finalTrust = calFinal_Trust(recog_Matrix);
+        System.out.println(finalTrust);
+        System.out.println(finalTrust.get("Node1"));
+    }
+}
 
